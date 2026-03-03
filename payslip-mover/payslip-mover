@@ -1,0 +1,36 @@
+#!bash
+
+source .env
+
+export PAYSLIP_MOVER_SOURCE_DIR
+export PAYSLIP_MOVER_DEST_DIR
+
+SOURCE_DIR=$PAYSLIP_MOVER_SOURCE_DIR
+DESTINATION_DIR=$PAYSLIP_MOVER_DEST_DIR
+
+find "$SOURCE_DIR" -name "Payslip_to_Print_-_Report_Design_*.pdf" | while read -r file; do
+
+    echo "found: $file"
+
+    # Extract filename
+    filename=$(basename "$file" .pdf)
+
+    echo "basename: $filename"
+
+    # Extract date using regex and convert underscores to periods
+    if [[ $filename =~ ([0-9]{2}_[0-9]{2}_[0-9]{4}) ]]; then
+        date=$(echo "$BASH_REMATCH" | sed "s/_/\./g")
+
+        echo "date match: $BASH_REMATCH"
+        echo "new date: $date"
+
+        # New filename
+        new_name="Payslip - Paid ${date}.pdf"
+        
+        echo "new file name: $new_name"
+
+        # Move and rename
+        mv "$file" "$DESTINATION_DIR/$new_name"
+    fi
+
+done
