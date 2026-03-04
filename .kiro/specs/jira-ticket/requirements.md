@@ -4,6 +4,31 @@
 
 The Jira Ticket Generator (jira-ticket) is a Go-based CLI tool that parses a `requirements.md` file and creates corresponding Jira tickets (Epics and Stories) using the `jira-cli` tool. The tool enables Kiro agents to automate Jira ticket creation directly from structured requirements documents, supporting idempotent operations and graceful error handling.
 
+## Prerequisites
+
+### jira-cli Authentication
+
+The tool requires [jira-cli](https://github.com/ankitpokhrel/jira-cli) to be installed and authenticated:
+
+```bash
+# Install jira-cli
+brew install jira-cli
+
+# Authenticate (interactive setup)
+jira init
+```
+
+Follow the prompts to configure your Jira server URL and authentication token.
+
+### Knowledge Base Requirement
+
+For AI agent integration, create a knowledge base file at `~/ai_agent/assistant/coding/stack/jira.md` containing:
+- jira-cli common commands and usage patterns
+- Project-specific Jira workflows
+- Custom field mappings if applicable
+
+This enables agents to query Jira context via `/knowledge search coding-context jira`.
+
 ## Glossary
 
 - **Jira_Ticket_Generator**: The Go CLI tool that parses requirements and creates Jira tickets
@@ -30,6 +55,8 @@ The Jira Ticket Generator (jira-ticket) is a Go-based CLI tool that parses a `re
 5. WHEN the requirements.md file contains invalid markdown, THE Parser SHALL return a descriptive parsing error
 6. THE Parser SHALL preserve the hierarchical relationship between Epics and their child Stories
 7. FOR ALL valid Requirements_File content, parsing then formatting back to markdown then parsing SHALL produce equivalent structured data (round-trip property)
+8. WHEN an Epic or Story section contains a `**Priority:**` field, THE Parser SHALL extract the priority value
+9. WHEN an Epic or Story section contains an `**Assignee:**` field, THE Parser SHALL extract the assignee value
 
 ### Requirement 2: Create Epics in Jira
 
@@ -41,6 +68,8 @@ The Jira Ticket Generator (jira-ticket) is a Go-based CLI tool that parses a `re
 2. WHEN creating an Epic, THE Jira_CLI_Adapter SHALL use the `#` heading text as the Epic summary
 3. WHEN the jira-cli command fails for an Epic, THE Jira_Ticket_Generator SHALL log the error and continue processing remaining items
 4. WHEN an Epic is successfully created, THE Jira_CLI_Adapter SHALL capture and return the assigned Ticket_Key
+5. WHEN an Epic specifies a priority, THE Jira_CLI_Adapter SHALL pass the priority to jira-cli using the `-y` flag
+6. WHEN an Epic specifies an assignee, THE Jira_CLI_Adapter SHALL pass the assignee to jira-cli using the `-a` flag
 
 ### Requirement 3: Create Stories in Jira
 
@@ -53,6 +82,8 @@ The Jira Ticket Generator (jira-ticket) is a Go-based CLI tool that parses a `re
 3. WHEN creating a Story, THE Jira_CLI_Adapter SHALL include the acceptance criteria in the Story description
 4. WHEN creating a Story, THE Jira_CLI_Adapter SHALL link it to its parent Epic using the Epic's Ticket_Key
 5. WHEN the jira-cli command fails for a Story, THE Jira_Ticket_Generator SHALL log the error and continue processing remaining items
+6. WHEN a Story specifies a priority, THE Jira_CLI_Adapter SHALL pass the priority to jira-cli using the `-y` flag
+7. WHEN a Story specifies an assignee, THE Jira_CLI_Adapter SHALL pass the assignee to jira-cli using the `-a` flag
 
 ### Requirement 4: Configuration Management
 
@@ -113,6 +144,8 @@ The Jira Ticket Generator (jira-ticket) is a Go-based CLI tool that parses a `re
 3. THE steering file SHALL specify that `##` headings become Stories linked to the preceding Epic
 4. THE steering file SHALL specify the format for acceptance criteria within Story sections
 5. THE steering file SHALL provide examples of valid requirements.md structure
+6. THE steering file SHALL specify the format for optional priority field (e.g., `**Priority:** High`)
+7. THE steering file SHALL specify the format for optional assignee field (e.g., `**Assignee:** username`)
 ### Requirement 9: Duplicate Handling
 
 **User Story:** As a developer, I want the tool to handle duplicate tickets gracefully, so that I can run the tool multiple times without creating duplicates.
@@ -126,3 +159,44 @@ The Jira Ticket Generator (jira-ticket) is a Go-based CLI tool that parses a `re
 5. WHEN a duplicate Epic or Story exists AND mode is `fail`, THE Jira_Ticket_Generator SHALL log an error and continue processing remaining items
 6. THE duplicate detection function SHALL be designed to accept additional modes (e.g., `update`) in future implementations
 7. THE Jira_Ticket_Generator SHALL report skipped or failed duplicates in the final summary output
+
+## Future Enhancements
+
+The following features are out of scope for the initial implementation but should be considered for future versions:
+
+### Agent Integration
+- **Kiro Hook Integration** — Auto-run `jira-ticket --dry-run` when a `requirements.md` file is saved, providing immediate validation feedback on structure
+- **`--output json` flag** — Machine-readable output format for agent parsing and logging integration
+
+### Duplicate Handling
+- **`--on-duplicate update` mode** — Extend duplicate handling to support updating existing tickets with changed content
+
+### Extended Issue Types
+- **Task and Bug support** — Support additional issue types beyond Epic and Story (e.g., `### [Bug] Login fails` or `### [Task] Setup CI`)
+- **Sub-task support** — Allow `###` headings to create Sub-tasks linked to parent Stories
+
+### Extended Fields
+- **Labels** — Support `-l` flag for labels (e.g., `**Labels:** backend, urgent`)
+- **Components** — Support `-C` flag for components (e.g., `**Component:** Backend`)
+- **Fix versions** — Support `--fix-version` flag (e.g., `**Fix Version:** v2.0`)
+
+### Sprint Integration
+- **Sprint assignment** — Auto-assign created issues to a sprint using `jira sprint add`
+- **`--sprint` flag** — Accept sprint ID or `current` keyword to assign all created issues
+
+### Issue Linking
+- **Arbitrary issue links** — Support linking issues beyond Epic→Story parent relationships (e.g., `Blocks`, `Relates to`)
+
+### Front-matter Defaults
+Support YAML front-matter in requirements.md for project-wide defaults:
+```yaml
+---
+priority: High
+labels: [backend, q1-2026]
+sprint: current
+assignee: $(jira me)
+---
+```
+
+### Architecture Note
+The `Jira_CLI_Adapter` interface is intentionally narrow for MVP but designed to wrap additional jira-cli commands as needed. New operations should follow the same subprocess pattern with structured output parsing.
