@@ -32,11 +32,19 @@ When writing or reviewing requirements in a Kiro spec, structure them for Jira i
 
 **User Story:** As a [role], I want [goal] so that [benefit].
 
+**Priority:** High
+**Assignee:** username
+
 ### Acceptance Criteria
 
 1. WHEN [condition], THE [Subject] SHALL [action]
 2. THE [Subject] SHALL [requirement]
 ```
+
+## Optional Fields
+
+- `**Priority:**` — Maps to jira-cli `-y` flag. Values: `Highest`, `High`, `Medium`, `Low`, `Lowest`
+- `**Assignee:**` — Maps to jira-cli `-a` flag. Use Jira username or `$(jira me)` for self-assignment
 
 ## Example
 
@@ -47,6 +55,9 @@ When writing or reviewing requirements in a Kiro spec, structure them for Jira i
 
 **User Story:** As a user, I want to log in with my email and password so that I can access my account.
 
+**Priority:** High
+**Assignee:** jdoe
+
 ### Acceptance Criteria
 
 1. WHEN valid credentials are provided, THE system SHALL authenticate the user
@@ -56,6 +67,8 @@ When writing or reviewing requirements in a Kiro spec, structure them for Jira i
 ## Password Reset
 
 **User Story:** As a user, I want to reset my password so that I can regain access if I forget it.
+
+**Priority:** Medium
 
 ### Acceptance Criteria
 
